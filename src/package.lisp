@@ -18,7 +18,10 @@
    #:every
    #:some
    #:remove-duplicates
-   #:lexicographic-compare))
+   #:lexicographic-compare
+   #:object-to-keyargs
+   #:escape-html
+   #:unescape-html))
 
 (defpackage #:js-global
     (:export #:console #:console.warn #:window #:window.console #:document #:arguments
