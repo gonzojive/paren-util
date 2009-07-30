@@ -5,7 +5,7 @@
 
 (in-package :paren-util-system)
 
-(asdf:operate 'asdf:load-op :parenscript)
+(asdf:operate 'asdf:load-op :paren-files)
 
 (defsystem :paren-util
   :name "paren-util"
@@ -17,6 +17,7 @@
 	       (:module "src"
 			:components
 			((:file "package")
+			 (:file "util-macrology" :depends-on ("package"))
 			 (:module "paren"
 				  :components
 				  ((:parenscript-file "util")

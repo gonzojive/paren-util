@@ -21,11 +21,29 @@
    #:lexicographic-compare
    #:object-to-keyargs
    #:escape-html
-   #:unescape-html))
+   #:unescape-html
+   #:elem-by-id
+   #:remove-elem
+   #:remove-from-array
+   #:calculate-window-size
+   #:calculate-page-size
+   #:calculate-page-scroll
+   #:calculate-max-page-scroll
+   
+   #:insertion-fn
+   #:create-elem
+   #:html-content-to-dom-nodes
+   #:elem-insert
+   #:write-attributes
+   #:toplevel-window
+   #:elem-hide
+   #:elem-visible?
+   #:elem-show))
 
 (defpackage #:js-global
     (:export #:console #:console.warn #:window #:window.console #:document #:arguments
 	     #:splice
+	     #:this
 	     #:-Array #:-Object))
 
 

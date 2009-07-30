@@ -1,4 +1,4 @@
-
+(in-package :paren-util)
 #+paren-packages
 (defpackage #:paren-util
   (:nicknames #:paren-util #:suave-util)
@@ -28,36 +28,6 @@
 ;		  (symbol (symbol-name symbol-like))
 ;		  (t (error "Expected string or symbole but got ~S" symbol-like)))))
 ;    `',(intern string :js-global)))
-
-#L(defmacro in-package (package-designator)
-    `(eval-when (:compile-toplevel)
-       (setf cl:*package* (find-package ,package-designator))))
-
-#L(defmacro use-package (package-designator &optional into-package)
-    (let ((all-args (cons package-designator (if into-package (cons into-package nil) nil))))
-      `(eval-when (:compile-toplevel)
-	 (use-package ,@all-args))))
-
-(in-package :paren-util)
-
-#L(defmacro funcall (fun &rest args)
-    `(,fun ,@args))
-
-#L(defmacro methcall (method this-obj &rest args)
-    `((slot-value ,this-obj ,method) ,@args))
-
-#L(defmacro methcall* (methods this-obj &rest args)
-    `((slot-value ,this-obj ,@methods) ,@args))
-
-#L(defmacro with-arguments-array ((args-var) &body body)
-    `(let ((,args-var (to-array js-global::arguments)))
-       ,@body))
-
-#L(defmacro defaultf (place default-val)
-    `(setf ,place (if (ps:!== ,place ps:undefined)
-		      ,place
-		      ,default-val)))
-
 
 (defun to-array (array-like)
   (let ((result-arr (array)))
@@ -130,17 +100,35 @@ appended to the ..."
 	(return result))))
   (return false))
 
-(defaultf (slot-value js-global::-Array 'js-global::prototype 'js-global::filter)
-    (lambda (fun)
-      (return (collect fun this))))
+;; implement Javascript 1.6 methods ourselves
+(defaultf (slot-value js-global::-Array :prototype :map)
+    (lambda (fn)
+      (let ((result (array)))
+	(dolist (item js-global:this)
+	  (methcall 'js-global::push result (fn item)))
+	(return result))))
 
-(defaultf js-global::-Array.prototype.every
-    (lambda (fun)
-      (return (every fun this))))
+(defaultf (slot-value js-global::-Array :prototype :index-of)
+    (lambda (sought &optional (from-index 0))
+      (let ((index 0))
+	(dolist (item js-global:this)
+	  (when (and (>= index from-index) (=== item sought))
+	    (return index))
+	  (incf index 1))
+	(return -1))))
 
-(defaultf js-global::-Array.prototype.some
+
+(defaultf (slot-value js-global::-Array :prototype :filter)
     (lambda (fun)
-      (return (some fun this))))
+      (return (collect fun js-global:this))))
+
+(defaultf (slot-value js-global::-Array :prototype :every)
+    (lambda (fun)
+      (return (every fun js-global:this))))
+
+(defaultf (slot-value js-global::-Array :prototype :some)
+    (lambda (fun)
+      (return (some fun js-global:this))))
 
 (defun eql (a b)
   (return (== a b)))
@@ -202,3 +190,233 @@ if a > b.  Ignores case and treats `9' < `80'."
 	(text (methcall :create-text-node js-global:document str)))
     (methcall :append-child div text)
     (return (slot-value div :inner-h-t-m-l))))
+
+(defun elem-by-id (id)
+  (let ((result nil))
+    (cond
+      ((slot-value document :get-element-by-id)
+       (return (paren-util:methcall :get-element-by-id document id))))))
+
+(defun remove-elem (elem)
+  (let ((parent (slot-value elem 'js-global::parent-node)))
+    (methcall 'js-global::remove-child
+	      parent
+	      elem)))
+
+(defun remove-from-array (arr item)
+  (let ((index (methcall 'js-global::index-of arr item)))
+    (when (!== -1 index)
+      (methcall 'js-global::splice arr index 1))))
+
+
+
+;;; UI-oriented
+
+;; show/hide elements
+(defun elem-visible? (elem)
+  "Returns t if the element is not hidden"
+  (return (!== "none" (slot-value elem 'js-global::style 'js-global::display))))
+
+(defun elem-hide (elem)
+  "Hides the element."
+  (setf (slot-value elem 'js-global::style 'js-global::display) "none"))
+
+(defun elem-show (elem)
+  "Unhides the element."
+  (setf (slot-value elem 'js-global::style 'js-global::display) ""))
+
+;; page size calculation
+(defun calculate-framep ()
+  "Returns true if the javascript context is inside a frame."
+  (return
+    (and (slot-value js-global:window 'js-global::parent 'js-global::frames
+		     (slot-value js-global:window 'js-global::name))
+	 (<= (length (methcall 'js-global::get-elements-by-tag-name
+			       (slot-value js-global::parent 'js-global:document)
+			       "frameset"))
+	     0))))
+
+(defun toplevel-window ()
+  "Returns the toplevel window regardless of framesets and so on."
+  (let* ((framep (calculate-framep))
+	 (win (if framep js-global::parent js-global::self)))
+    (return win)))
+
+(defun calculate-page-scroll ()
+  "Returns an array of length 2 with the x and y scroll."
+  (let* ((framep (calculate-framep))
+	 (doc (if framep (slot-value js-global::parent 'js-global:document) js-global:document))
+	 (win (if framep js-global::parent js-global::self))
+	 (doc-elem (slot-value doc 'js-global::document-element)))
+    (return (array
+	     (or (slot-value win 'js-global::page-x-offset)
+		 (slot-value doc 'js-global::body 'js-global::scroll-left)
+		 (and doc-elem (slot-value doc-elem 'js-global::scroll-left))
+		 0)
+	     (or (slot-value win 'js-global::page-y-offset)
+		 (slot-value doc 'js-global::body 'js-global::scroll-top)
+		 (and doc-elem (slot-value doc-elem 'js-global::scroll-top))
+		 0)))))
+    
+
+(defun calculate-max-page-scroll ()
+  "Returns an array of length 2 with the x and y scroll."
+  (let* ((framep (calculate-framep))
+	 (doc (if framep (slot-value js-global::parent 'js-global:document) js-global:document))
+	 (win (if framep js-global::parent js-global::self))
+	 (doc-elem (slot-value doc 'js-global::document-element)))
+    (cond
+      ((and (slot-value js-global:window 'js-global::inner-height)
+	    (slot-value js-global:window 'js-global::scroll-max-y))
+       (log "first")
+       (return (array (slot-value js-global:window 'js-global::scroll-max-x)
+		      (+ (if framep
+			     (slot-value js-global::parent 'js-global::inner-height)
+			     (slot-value js-global::self 'js-global::inner-height))
+			 (if framep
+			     (slot-value js-global::parent 'js-global::scroll-max-y)
+			     (slot-value js-global::self 'js-global::scroll-max-y))))))
+      ((> (slot-value doc 'js-global::body 'js-global::scroll-height)
+	  (slot-value doc 'js-global::body 'js-global::offset-height))
+       (log "second")
+       (return (array (slot-value doc 'js-global::body 'js-global::scroll-width)
+		      (slot-value doc 'js-global::body 'js-global::scroll-height))))
+      (t
+       (log "third")
+       (let* ((html-elem (methcall 'js-global::item
+				   (methcall 'js-global::get-elements-by-tag-name doc "html")
+				   0))
+	      (ow (slot-value html-elem 'js-global::offset-width))
+	      (oh (slot-value html-elem 'js-global::offset-height))
+	      (body-ow (slot-value doc 'js-global::body 'js-global::offset-width))
+	      (body-oh (slot-value doc 'js-global::body 'js-global::offset-width)))
+	 (return (array (if (< ow body-ow) body-ow ow)
+			(if (< oh body-oh) body-oh oh))))))))
+
+(defun calculate-window-size ()
+  "Returns an array of length 2 with the size of the window in pixels."
+  (let* ((framep (calculate-framep))
+	 (relevant-window (if framep js-global::parent js-global::self))
+	 (doc (if framep (slot-value js-global::parent 'js-global:document) js-global:document)))
+    
+    (cond
+      ((slot-value js-global::self 'js-global::inner-height)
+       (return (array (slot-value relevant-window 'js-global::inner-width)
+		      (slot-value relevant-window 'js-global::inner-height))))
+      ((and (slot-value js-global::document 'js-global::document-element)
+	    (slot-value js-global::document 'js-global::document-element 'js-global::client-height))
+       (let ((doc-elem (slot-value doc 'js-global::document-element)))
+	 (return (array (slot-value doc 'js-global::client-width)
+			(slot-value doc 'js-global::client-height)))))
+      ((slot-value js-global::document 'js-global::body)
+       (let* ((html-elem (methcall 'js-global::item
+				   (methcall 'js-global::get-elements-by-tag-name doc "html")
+				   0))
+	      (win-width (slot-value html-elem 'js-global::client-width))
+	      (win-height (slot-value html-elem 'js-global::client-height)))
+	 (return (array (if (=== 0 win-width)
+			    (slot-value doc 'js-global::body 'js-global::client-width)
+			    win-width)
+			(if (=== 0 win-height)
+			    (slot-value doc 'js-global::body 'js-global::client-height)
+			    win-height))))))))
+      
+(defun calculate-page-size ()
+  (let* ((scroll (calculate-max-page-scroll))
+	 (x-scroll (elt scroll 0))
+	 (y-scroll (elt scroll 1))
+	 (size (calculate-window-size))
+	 (window-width (elt size 0))
+	 (window-height (elt size 1))
+	 (page-height (if (< y-scroll window-height)
+			  window-height
+			  y-scroll))
+	 (page-width (if (< x-scroll window-width)
+			 window-width
+			 x-scroll)))
+    (return (array page-width page-height
+		   window-width window-height
+		   x-scroll y-scroll))))
+
+;; element or html insertion
+;;;; HTML/JS utility
+(defvar *tag-table*
+  (create "TABLE" (array "<table>" "</table>" 1)
+	  "TBODY" (array "<table><tbody>" "</tbody></table>" 2)
+	  "TR" (array "<table><tbody><tr>" "</tr></tbody></table>" 3)
+	  "TD" (array "<table><tbody><tr><td>" "</td></tr></tbody></table>" 4)
+	  "SELECT" (array "<select>" "</select>" 1)))
+
+(defvar *attribute-translations*
+  (create "class" "className"
+	  "for" "htmlFor"))
+
+(defvar *internet-explorer*
+  (and (slot-value js-global:window :attach-event) (not (slot-value js-global:window :operate)) t))
+
+(defun insertion-fn (location)
+  "Returns a function of two arguments--an element and a DOM node--that will insert the DOM node into the page :before, :after
+at the :top or :bottom of the element."
+  (let ((result nil))
+    (case location
+      (:before (setf result (lambda (element node)
+			      (methcall :insert-before (slot-value element :parent-node)  node element))))
+      (:after (setf result  (lambda (element node)
+			      (methcall :insert-before (slot-value element :parent-node)   node (slot-value element :next-sibling)))))
+      (:top (setf result  (lambda (element node)
+			    (methcall :insert-before element node (slot-value element :first-child)))))
+      (:bottom (setf result (lambda (element node)
+			      (methcall :insert-before (slot-value element :parent-node) node (slot-value element :next-sibling))))))
+    (return result)))
+
+(defun write-attributes (elem attributes)
+  "Given a hash table of attributes and a dom element, sets the attributes of the element
+according to the attribute names."
+  (for-in (attr attributes)
+	  (let ((name (or (slot-value *attribute-translations* name) name))
+		(value (slot-value attributes attr)))
+	    (cond
+	      ((or (=== false value) (=== nil value))       (methcall elem :remove-attribute name))
+	      ((=== true value) (methcall elem :set-attribute name name))
+	      (t (methcall elem :set-attribute name value)))))
+  (return elem))
+
+(defun create-elem (tag-name &optional (attributes-obj (create)))
+  "Creates a DOM element with the given tag name and attributes."
+  (setf tag-name (methcall :to-lower-case tag-name))
+  (when (and *internet-explorer* (slot-value attributes-obj :name))
+    (setf tag-name (+ "<" tag-name " name=\"" (slot-value attributes-obj :name) "\">"))
+    (delete (slot-value attributes-obj :name)))
+  
+  (let ((elem (methcall :create-element js-global:document tag-name)))
+    (write-attributes elem attributes-obj)
+    (return elem)))
+
+(defun html-content-to-dom-nodes (html-content tag-name)
+  "Given some HTML content, inserts it into an anonymous element with the given tag-name (e.g. 'DIV', 'TABLE'),
+and returns an array of elements."
+;  (parn-psos::log  (+ "Converting HTML " html-content " to DOM nodes in tag with name " tag-name))
+  (let* ((div (create-elem "div"))
+	 (tag (slot-value *tag-table* (methcall :to-upper-case tag-name))))
+    (if tag
+	(progn
+	  (setf (slot-value div :inner-h-t-m-l) (+ (aref tag 0) html-content (aref tag 1)))
+	  (dotimes (i (aref tag 2))
+	    (setf div (slot-value div :first-child))))
+	 (setf (slot-value div :inner-h-t-m-l) html-content))
+    (return (to-array (slot-value div :child-nodes)))))
+
+(defun elem-insert (elem content location)
+  "Location is one of :top :bottom :before :after.  Content is an html string."
+  (let* ((insert-fn (insertion-fn location))
+	 (insert-elem-tag-name (slot-value (if (or (== :before location) (== :after location))
+					       (slot-value elem :parent-node)
+					       elem)
+					   :tag-name))
+	 (content-nodes (html-content-to-dom-nodes content insert-elem-tag-name)))
+    (when (or (=== :top location) (=== :after location))
+      (methcall :reverse content-nodes))
+
+    (lispy-map (lambda (content-node)
+		 (insert-fn elem content-node))
+	       content-nodes)))
