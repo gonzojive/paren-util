@@ -29,7 +29,8 @@
    #:calculate-page-size
    #:calculate-page-scroll
    #:calculate-max-page-scroll
-   
+  
+   #:copy-array
    #:insertion-fn
    #:create-elem
    #:html-content-to-dom-nodes

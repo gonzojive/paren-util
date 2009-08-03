@@ -87,6 +87,8 @@ appended to the ..."
 	  (methcall 'js-global::push passing-members member)))
     (return passing-members)))
 
+(defvar remove-if-not collect)
+
 (defun every (fun arr)
   (dolist (member arr)
     (if (not (fun member))
@@ -198,9 +200,9 @@ if a > b.  Ignores case and treats `9' < `80'."
        (return (paren-util:methcall :get-element-by-id document id))))))
 
 (defun remove-elem (elem)
-  (let ((parent (slot-value elem 'js-global::parent-node)))
+  (let ((parent-elem (slot-value elem 'js-global::parent-node)))
     (methcall 'js-global::remove-child
-	      parent
+	      parent-elem
 	      elem)))
 
 (defun remove-from-array (arr item)
@@ -208,7 +210,11 @@ if a > b.  Ignores case and treats `9' < `80'."
     (when (!== -1 index)
       (methcall 'js-global::splice arr index 1))))
 
-
+(defun copy-array (arr)
+  (let ((result (array)))
+    (dolist (item arr)
+      (methcall :push result item))
+    (return result)))
 
 ;;; UI-oriented
 
