@@ -39,7 +39,18 @@
    #:toplevel-window
    #:elem-hide
    #:elem-visible?
-   #:elem-show))
+   #:elem-show
+
+   ;; iteration
+   #:find
+   #:remove
+   #:push-on-end
+   ;; comparison and identity
+   #:identity
+   #:equal
+   
+   #:string-downcase
+   #:string-upcase))
 
 (defpackage #:js-global
     (:export #:console #:console.warn #:window #:window.console #:document #:arguments

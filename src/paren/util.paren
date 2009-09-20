@@ -95,12 +95,31 @@ appended to the ..."
 	(return false)))
   (return true))
 
-(defun some (fun arr)
+(defun some (fn arr)
   (dolist (item arr)
-    (let ((result (fun item)))
+    (let ((result (fn item)))
       (when result
 	(return result))))
   (return false))
+
+(defun identity (i)
+  (return i))
+
+(defun find (item sequence &key (key identity) (test equal))
+  (dolist (member sequence)
+    (when (funcall test item (funcall key member))
+      (return member)))
+  (return nil))
+
+(defun push-on-end (obj place)
+  (return (methcall 'js-global::push place obj)))
+
+(defun remove (item sequence &key (key identity) (test equal))
+  (let ((result (array)))
+    (dolist (member sequence)
+      (when (not (funcall test item (funcall key member)))
+	(push-on-end member result)))
+    (return result)))
 
 ;; implement Javascript 1.6 methods ourselves
 (defaultf (slot-value js-global::-Array :prototype :map)
@@ -135,6 +154,9 @@ appended to the ..."
 (defun eql (a b)
   (return (== a b)))
 
+(defun equal (a b)
+  (return (=== a b)))
+
 ; this isn't pretty but it works
 (defun remove-duplicates (in-arr &optional (equality-lambda eql))
   "Removes duplicates in the given array using the given equality function, which defaults
@@ -163,7 +185,7 @@ if a > b.  Ignores case and treats `9' < `80'."
     (let ((rv (if (< str-a str-b) -1 (if (> str-a str-b) 1 0))))
       (return rv))))
 
-(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive (method :get))
+(defun ajax-request (url &key body headers on-success on-failure on-loading on-loaded on-interactive (method "GET"))
   (let* ((ready-state nil)
 	 (transport (or (and (slot-value js-global:window :-x-m-l-http-request)
 			     (new (js-global::-x-m-l-http-request)))
@@ -177,7 +199,11 @@ if a > b.  Ignores case and treats `9' < `80'."
 			(funcall on-success (slot-value transport :response-text) transport)))))
     (setf (slot-value transport :onreadystatechange) on-rsc-fn)
     (methcall :open transport method url t)
-    (methcall :send transport nil)))
+    (when headers
+      (for-in (header headers)
+	      (methcall 'js-global::set-request-header transport
+			header  (slot-value headers header))))
+    (methcall :send transport body)))
     
 (defun object-to-keyargs (obj)
   (let ((arr (array)))
@@ -398,6 +424,17 @@ according to the attribute names."
     (write-attributes elem attributes-obj)
     (return elem)))
 
+(defun unescape-html (str)
+  (let  ((node (create-elem "DIV")))
+    (setf (slot-value node 'js-global::inner-h-t-m-l)
+	  str)
+    (cond
+      ((slot-value node 'js-global::inner-text)
+       (return (slot-value node 'js-global::inner-text)))
+      ((slot-value node 'js-global::inner-content)
+       (return (slot-value node 'js-global::inner-content)))
+      (t (return str)))))
+
 (defun html-content-to-dom-nodes (html-content tag-name)
   "Given some HTML content, inserts it into an anonymous element with the given tag-name (e.g. 'DIV', 'TABLE'),
 and returns an array of elements."
@@ -426,3 +463,10 @@ and returns an array of elements."
     (lispy-map (lambda (content-node)
 		 (insert-fn elem content-node))
 	       content-nodes)))
+
+(defun string-downcase (str)
+  (return (methcall 'js-global::to-lower-case str)))
+
+(defun string-upcase (str)
+  (return (methcall 'js-global::to-lower-case str)))
+
