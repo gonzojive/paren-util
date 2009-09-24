@@ -13,6 +13,8 @@
    #:to-array
    #:merge-into
    #:lispy-apply
+   #:re-escape
+
    #:lexicographic-compare
    #:object-to-keyargs
    #:escape-html
