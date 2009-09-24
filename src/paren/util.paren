@@ -1,25 +1,4 @@
 (in-package :paren-util)
-#+paren-packages
-(defpackage #:paren-util
-  (:nicknames #:paren-util #:suave-util)
-  (:use :parenscript)
-  
-  (:lisp-package  :org.iodb.paren-util)
-  (:export
-   #:to-array
-   #:merge-into
-   #:lispy-apply
-   #:lispy-map
-   #:collect
-n   #:every
-   #:some
-   #:remove-duplicates
-   #:funcall
-   #:methcall
-   #:lexicographic-compare))
-
-#+paren-packages
-(in-package :paren-util)
 
 ;(defmacro global (symbol-like)
 ;  "Use this to call a reference global variable."
