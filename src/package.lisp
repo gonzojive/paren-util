@@ -13,11 +13,6 @@
    #:to-array
    #:merge-into
    #:lispy-apply
-   #:lispy-map
-   #:collect
-   #:every
-   #:some
-   #:remove-duplicates
    #:lexicographic-compare
    #:object-to-keyargs
    #:escape-html
@@ -30,6 +25,7 @@
    #:calculate-page-scroll
    #:calculate-max-page-scroll
    #:ajax-request
+   #:stringp 
   
    #:copy-array
    #:insertion-fn
@@ -41,6 +37,15 @@
    #:elem-hide
    #:elem-visible?
    #:elem-show
+
+   #:find
+   #:lispy-map
+   #:collect
+   #:every
+   #:some
+   #:remove
+   #:remove-if-not
+   #:remove-duplicates
    
    #:key-object-to-array
    #:keys-array-fn-to-key-object-fn))
