@@ -11,7 +11,7 @@
    #:lispy-apply
    #:lispy-map
    #:collect
-   #:every
+n   #:every
    #:some
    #:remove-duplicates
    #:funcall
@@ -28,6 +28,15 @@
 ;		  (symbol (symbol-name symbol-like))
 ;		  (t (error "Expected string or symbole but got ~S" symbol-like)))))
 ;    `',(intern string :js-global)))
+
+(defun equal (a b)
+  (return (=== a b)))
+
+(defun eql (a b)
+  (return (== a b)))
+
+(defun identity (thing)
+  (return thing))
 
 (defun to-array (array-like)
   (let ((result-arr (array)))
@@ -61,7 +70,8 @@
   (return (slot-value arr 'js-global::length)))
 
 (defun subseq (arr start &optional end)
-  (return (methcall 'js-global::splice arr start (or end (length arr)))))
+  "Just like subseq in lisp."
+  (return (methcall 'js-global::splice (copy-array arr) start (or end (length arr)))))
   
 
 (defun lispy-apply (func &rest rest)
@@ -87,6 +97,13 @@ appended to the ..."
 	  (methcall 'js-global::push passing-members member)))
     (return passing-members)))
 
+(defun find (desired-item arr &key (key thing) (test equal))
+  (when arr
+    (dolist (item arr)
+      (when (funcall test desired-item (funcall key item))
+	(return item))))
+  (return nil))
+
 (defvar remove-if-not collect)
 
 (defun every (fun arr)
@@ -95,31 +112,37 @@ appended to the ..."
 	(return false)))
   (return true))
 
-(defun some (fn arr)
+(defun some (fun arr)
   (dolist (item arr)
-    (let ((result (fn item)))
+    (let ((result (fun item)))
       (when result
 	(return result))))
   (return false))
 
-(defun identity (i)
-  (return i))
-
-(defun find (item sequence &key (key identity) (test equal))
-  (dolist (member sequence)
-    (when (funcall test item (funcall key member))
-      (return member)))
-  (return nil))
-
-(defun push-on-end (obj place)
-  (return (methcall 'js-global::push place obj)))
-
-(defun remove (item sequence &key (key identity) (test equal))
+(defun key-object-to-array (obj)
+  "Converts an object like {foo : 'bar'} into an array like ['foo', 'bar'] ..."
   (let ((result (array)))
-    (dolist (member sequence)
-      (when (not (funcall test item (funcall key member)))
-	(push-on-end member result)))
+    (when obj
+      (for-in (key obj)
+	      (methcall 'js-global::push result key)
+	      (methcall 'js-global::push result (slot-value obj key))))
     (return result)))
+
+(defun keys-array-fn-to-key-object-fn (fn num-non-keyword-args)
+  "Creates a function that accepts NUM-NON-KEYWORD-ARG # of normal and optional arguments, and
+then a key-object parameter (a generic object that's keys/values are keyword arguments to the
+function) from a normal defun-ed function."
+  (return (lambda (&rest args)
+	    (let ((transformed-args (methcall 'js-global::concat
+					      (subseq args 0 num-non-keyword-args)
+					      (key-object-to-array (elt args num-non-keyword-args)))))
+	      (log "Transformed args / args")
+	      (log transformed-args)
+	      (log args)
+	      
+	      (return (methcall 'js-global::apply fn js-global:this transformed-args))))))
+		      
+				
 
 ;; implement Javascript 1.6 methods ourselves
 (defaultf (slot-value js-global::-Array :prototype :map)
@@ -151,12 +174,6 @@ appended to the ..."
     (lambda (fun)
       (return (some fun js-global:this))))
 
-(defun eql (a b)
-  (return (== a b)))
-
-(defun equal (a b)
-  (return (=== a b)))
-
 ; this isn't pretty but it works
 (defun remove-duplicates (in-arr &optional (equality-lambda eql))
   "Removes duplicates in the given array using the given equality function, which defaults
@@ -185,7 +202,7 @@ if a > b.  Ignores case and treats `9' < `80'."
     (let ((rv (if (< str-a str-b) -1 (if (> str-a str-b) 1 0))))
       (return rv))))
 
-(defun ajax-request (url &key body headers on-success on-failure on-loading on-loaded on-interactive (method "GET"))
+(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive (method :get))
   (let* ((ready-state nil)
 	 (transport (or (and (slot-value js-global:window :-x-m-l-http-request)
 			     (new (js-global::-x-m-l-http-request)))
@@ -199,11 +216,7 @@ if a > b.  Ignores case and treats `9' < `80'."
 			(funcall on-success (slot-value transport :response-text) transport)))))
     (setf (slot-value transport :onreadystatechange) on-rsc-fn)
     (methcall :open transport method url t)
-    (when headers
-      (for-in (header headers)
-	      (methcall 'js-global::set-request-header transport
-			header  (slot-value headers header))))
-    (methcall :send transport body)))
+    (methcall :send transport nil)))
     
 (defun object-to-keyargs (obj)
   (let ((arr (array)))
@@ -398,19 +411,19 @@ at the :top or :bottom of the element."
       (:top (setf result  (lambda (element node)
 			    (methcall :insert-before element node (slot-value element :first-child)))))
       (:bottom (setf result (lambda (element node)
-			      (methcall :insert-before (slot-value element :parent-node) node (slot-value element :next-sibling))))))
+			      (methcall :append-child element node)))))
     (return result)))
 
 (defun write-attributes (elem attributes)
   "Given a hash table of attributes and a dom element, sets the attributes of the element
 according to the attribute names."
   (for-in (attr attributes)
-	  (let ((name (or (slot-value *attribute-translations* name) name))
+	  (let ((name (or (slot-value *attribute-translations* attr) attr))
 		(value (slot-value attributes attr)))
 	    (cond
-	      ((or (=== false value) (=== nil value))       (methcall elem :remove-attribute name))
-	      ((=== true value) (methcall elem :set-attribute name name))
-	      (t (methcall elem :set-attribute name value)))))
+	      ((or (=== false value) (=== nil value))       (methcall :remove-attributes elem name))
+	      ((=== true value) (methcall :set-attribute elem name name))
+	      (t (methcall  :set-attribute elem name value)))))
   (return elem))
 
 (defun create-elem (tag-name &optional (attributes-obj (create)))
@@ -423,17 +436,6 @@ according to the attribute names."
   (let ((elem (methcall :create-element js-global:document tag-name)))
     (write-attributes elem attributes-obj)
     (return elem)))
-
-(defun unescape-html (str)
-  (let  ((node (create-elem "DIV")))
-    (setf (slot-value node 'js-global::inner-h-t-m-l)
-	  str)
-    (cond
-      ((slot-value node 'js-global::inner-text)
-       (return (slot-value node 'js-global::inner-text)))
-      ((slot-value node 'js-global::inner-content)
-       (return (slot-value node 'js-global::inner-content)))
-      (t (return str)))))
 
 (defun html-content-to-dom-nodes (html-content tag-name)
   "Given some HTML content, inserts it into an anonymous element with the given tag-name (e.g. 'DIV', 'TABLE'),
@@ -449,6 +451,9 @@ and returns an array of elements."
 	 (setf (slot-value div :inner-h-t-m-l) html-content))
     (return (to-array (slot-value div :child-nodes)))))
 
+(defun stringp (thing)
+  (return (=== "string" (ps:typeof thing))))
+
 (defun elem-insert (elem content location)
   "Location is one of :top :bottom :before :after.  Content is an html string."
   (let* ((insert-fn (insertion-fn location))
@@ -456,17 +461,12 @@ and returns an array of elements."
 					       (slot-value elem :parent-node)
 					       elem)
 					   :tag-name))
-	 (content-nodes (html-content-to-dom-nodes content insert-elem-tag-name)))
+	 (content-nodes (if (stringp content)
+			    (html-content-to-dom-nodes content insert-elem-tag-name)
+			    (array content))))
     (when (or (=== :top location) (=== :after location))
       (methcall :reverse content-nodes))
 
     (lispy-map (lambda (content-node)
 		 (insert-fn elem content-node))
 	       content-nodes)))
-
-(defun string-downcase (str)
-  (return (methcall 'js-global::to-lower-case str)))
-
-(defun string-upcase (str)
-  (return (methcall 'js-global::to-lower-case str)))
-

@@ -29,6 +29,7 @@
    #:calculate-page-size
    #:calculate-page-scroll
    #:calculate-max-page-scroll
+   #:ajax-request
   
    #:copy-array
    #:insertion-fn
@@ -40,17 +41,9 @@
    #:elem-hide
    #:elem-visible?
    #:elem-show
-
-   ;; iteration
-   #:find
-   #:remove
-   #:push-on-end
-   ;; comparison and identity
-   #:identity
-   #:equal
    
-   #:string-downcase
-   #:string-upcase))
+   #:key-object-to-array
+   #:keys-array-fn-to-key-object-fn))
 
 (defpackage #:js-global
     (:export #:console #:console.warn #:window #:window.console #:document #:arguments
