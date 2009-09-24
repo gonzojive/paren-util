@@ -17,6 +17,7 @@
    #:collect
    #:every
    #:some
+   #:re-escape
    #:remove-duplicates
    #:lexicographic-compare
    #:object-to-keyargs

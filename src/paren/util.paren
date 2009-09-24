@@ -449,3 +449,20 @@ and returns an array of elements."
     (lispy-map (lambda (content-node)
 		 (insert-fn elem content-node))
 	       content-nodes)))
+
+(defun re-escape (text)
+  (return (methcall 'js-global::replace text
+		    (regex "/(\\/|\\.|\\*|\\+|\\?|\\||\\(|\\)|\\[|\\]|\\{|\\}|\\\\)/g")
+		    "\\$1")))
+
+;; here is the orignal version of the above regex
+;(defvar *re-specials* (array "/" "." "*" "+" "?" "|" "(" ")" "[" "]" "{" "}" "\\"))
+;(defvar *re-specials-joined* (methcall 'js-global::join *re-specials* "|\\"))
+;(defvar *re-specials-re* 
+;  (funcall (lambda ()
+;	     (let ((specials (array "/" "." "*" "+" "?" "|" "(" ")" "[" "]" "{" "}" "\\")))
+;	       (return (new (js-global::-reg-exp
+;			     (+ "(\\"
+;				(methcall 'js-global::join specials "|\\")
+;				")")
+;			     "g")))))))
