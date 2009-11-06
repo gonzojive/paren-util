@@ -214,7 +214,11 @@ if a > b.  Ignores case and treats `9' < `80'."
 			(funcall on-success (slot-value transport :response-text) transport)))))
     (setf (slot-value transport :onreadystatechange) on-rsc-fn)
     (methcall :open transport method url t)
-    (methcall :send transport nil)))
+    (when headers
+      (for-in (header-name headers)
+	      (methcall 'js-global::set-request-header transport
+			header-name (slot-value headers header-name))))
+    (methcall :send transport (or body null))))
     
 (defun object-to-keyargs (obj)
   (let ((arr (array)))
