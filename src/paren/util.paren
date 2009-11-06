@@ -200,14 +200,14 @@ if a > b.  Ignores case and treats `9' < `80'."
     (let ((rv (if (< str-a str-b) -1 (if (> str-a str-b) 1 0))))
       (return rv))))
 
-(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive (method :get))
+(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive body headers (method :get))
   (let* ((ready-state nil)
 	 (transport (or (and (slot-value js-global:window :-x-m-l-http-request)
 			     (new (js-global::-x-m-l-http-request)))
 			(and (slot-value js-global:window :-active-x-object)
 			     (or (new (js-global::-active-x-object "Msxml2.XMLHTTP"))
 				 (new (js-global::-active-x-object "Microsoft.XMLHTTP"))))))
-	 (method (methcall :to-upper-case method))
+	 (method (string-upcase method))
 	 (on-rsc-fn (lambda ()
 		      (setf ready-state (slot-value transport :ready-state))
 		      (when (=== 4 ready-state)
@@ -496,3 +496,10 @@ and returns an array of elements."
 ;				(methcall 'js-global::join specials "|\\")
 ;				")")
 ;			     "g")))))))
+
+(defun string-downcase (str)
+  (return (methcall 'js-global::to-lower-case str)))
+
+
+(defun string-upcase (str)
+  (return (methcall 'js-global::to-upper-case str)))
