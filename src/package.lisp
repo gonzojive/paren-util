@@ -28,6 +28,7 @@
    #:calculate-max-page-scroll
    #:ajax-request
    #:stringp 
+   #:identity
   
    #:copy-array
    #:insertion-fn
