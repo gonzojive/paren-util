@@ -200,25 +200,21 @@ if a > b.  Ignores case and treats `9' < `80'."
     (let ((rv (if (< str-a str-b) -1 (if (> str-a str-b) 1 0))))
       (return rv))))
 
-(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive body headers (method :get))
+(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive (method :get))
   (let* ((ready-state nil)
 	 (transport (or (and (slot-value js-global:window :-x-m-l-http-request)
 			     (new (js-global::-x-m-l-http-request)))
 			(and (slot-value js-global:window :-active-x-object)
 			     (or (new (js-global::-active-x-object "Msxml2.XMLHTTP"))
 				 (new (js-global::-active-x-object "Microsoft.XMLHTTP"))))))
-	 (method (string-upcase method))
+	 (method (methcall :to-upper-case method))
 	 (on-rsc-fn (lambda ()
 		      (setf ready-state (slot-value transport :ready-state))
 		      (when (=== 4 ready-state)
 			(funcall on-success (slot-value transport :response-text) transport)))))
     (setf (slot-value transport :onreadystatechange) on-rsc-fn)
     (methcall :open transport method url t)
-    (when headers
-      (for-in (header-name headers)
-	      (methcall 'js-global::set-request-header transport
-			header-name (slot-value headers header-name))))
-    (methcall :send transport (or body null))))
+    (methcall :send transport nil)))
     
 (defun object-to-keyargs (obj)
   (let ((arr (array)))
@@ -501,9 +497,14 @@ and returns an array of elements."
 ;				")")
 ;			     "g")))))))
 
-(defun string-downcase (str)
-  (return (methcall 'js-global::to-lower-case str)))
+(defun join (strings text)
+  (return (methcall 'js-global::join strings text)))
 
+(defun nreverse (arr)
+  (return (methcall :reverse arr)))
 
-(defun string-upcase (str)
-  (return (methcall 'js-global::to-upper-case str)))
+(defun reverse-in-place (arr)
+  (return (methcall :reverse arr)))
+
+(defun reverse (arr)
+  (return (methcall :reverse (copy-array arr))))
