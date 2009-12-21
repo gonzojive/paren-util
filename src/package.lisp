@@ -6,6 +6,7 @@
    #:merge-into
    #:lispy-apply
    #:lexicographic-compare
+   #:identity
 
    ;; macros
    #:in-package
