@@ -69,6 +69,7 @@
    #:reverse
 
    ;; keyword arguments
+   #:object-values
    #:object-to-keyargs   
    #:key-object-to-array
    #:keys-array-fn-to-key-object-fn

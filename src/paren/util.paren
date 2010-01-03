@@ -9,10 +9,10 @@
 ;    `',(intern string :js-global)))
 
 (defun equal (a b)
-  (return (=== a b)))
+  (return (== a b)))
 
 (defun eql (a b)
-  (return (== a b)))
+  (return (=== a b)))
 
 (defun identity (thing)
   (return thing))
@@ -76,7 +76,7 @@ appended to the ..."
 	  (methcall 'js-global::push passing-members member)))
     (return passing-members)))
 
-(defun find (desired-item arr &key (key thing) (test equal))
+(defun find (desired-item arr &key (key identity) (test equal))
   (when arr
     (dolist (item arr)
       (when (funcall test desired-item (funcall key item))
@@ -110,7 +110,7 @@ appended to the ..."
 (defun push-on-end (obj place)
   (return (methcall 'js-global::push place obj)))
 
-(defun remove (item sequence &key (key identity) (test equal))
+(defun remove (item sequence &key (key identity) (test eql))
   (let ((result (array)))
     (dolist (member sequence)
       (when (not (funcall test item (funcall key member)))
@@ -124,6 +124,12 @@ appended to the ..."
       (for-in (key obj)
 	      (methcall 'js-global::push result key)
 	      (methcall 'js-global::push result (slot-value obj key))))
+    (return result)))
+
+(defun object-values (obj)
+  (let ((result (array)))
+    (for-in (key obj)
+	     (methcall 'js-global::push result (aref obj key)))
     (return result)))
 
 (defun keys-array-fn-to-key-object-fn (fn num-non-keyword-args)
@@ -200,7 +206,7 @@ if a > b.  Ignores case and treats `9' < `80'."
     (let ((rv (if (< str-a str-b) -1 (if (> str-a str-b) 1 0))))
       (return rv))))
 
-(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive (method :get))
+(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive headers body (method :get))
   (let* ((ready-state nil)
 	 (transport (or (and (slot-value js-global:window :-x-m-l-http-request)
 			     (new (js-global::-x-m-l-http-request)))
