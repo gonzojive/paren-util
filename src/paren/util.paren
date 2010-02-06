@@ -9,10 +9,10 @@
 ;    `',(intern string :js-global)))
 
 (defun equal (a b)
-  (return (=== a b)))
+  (return (== a b)))
 
 (defun eql (a b)
-  (return (== a b)))
+  (return (=== a b)))
 
 (defun identity (thing)
   (return thing))
@@ -78,7 +78,7 @@ appended to the ..."
 	  (methcall 'js-global::push passing-members member)))
     (return passing-members)))
 
-(defun find (desired-item arr &key (key thing) (test equal))
+(defun find (desired-item arr &key (key identity) (test equal))
   (when arr
     (dolist (item arr)
       (when (funcall test desired-item (funcall key item))
@@ -112,7 +112,7 @@ appended to the ..."
 (defun push-on-end (obj place)
   (return (methcall 'js-global::push place obj)))
 
-(defun remove (item sequence &key (key identity) (test equal))
+(defun remove (item sequence &key (key identity) (test eql))
   (let ((result (array)))
     (dolist (member sequence)
       (when (not (funcall test item (funcall key member)))
@@ -126,6 +126,12 @@ appended to the ..."
       (for-in (key obj)
 	      (methcall 'js-global::push result key)
 	      (methcall 'js-global::push result (slot-value obj key))))
+    (return result)))
+
+(defun object-values (obj)
+  (let ((result (array)))
+    (for-in (key obj)
+	     (methcall 'js-global::push result (aref obj key)))
     (return result)))
 
 (defun keys-array-fn-to-key-object-fn (fn num-non-keyword-args)
@@ -227,14 +233,14 @@ if a > b.  Ignores case and treats `9' < `80'."
 	    (setf str (+ str "&")))))
       (return str))))
 
-(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive body headers (method :get))
+(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive headers body (method :get))
   (let* ((ready-state nil)
 	 (transport (or (and (slot-value js-global:window :-x-m-l-http-request)
 			     (new (js-global::-x-m-l-http-request)))
 			(and (slot-value js-global:window :-active-x-object)
 			     (or (new (js-global::-active-x-object "Msxml2.XMLHTTP"))
 				 (new (js-global::-active-x-object "Microsoft.XMLHTTP"))))))
-	 (method (string-upcase method))
+	 (method (methcall :to-upper-case method))
 	 (on-rsc-fn (lambda ()
 		      (setf ready-state (slot-value transport 'js-global::ready-state))
 		      (when (=== 4 ready-state)
@@ -529,9 +535,14 @@ and returns an array of elements."
 ;				")")
 ;			     "g")))))))
 
-(defun string-downcase (str)
-  (return (methcall 'js-global::to-lower-case str)))
+(defun join (strings text)
+  (return (methcall 'js-global::join strings text)))
 
+(defun nreverse (arr)
+  (return (methcall :reverse arr)))
 
-(defun string-upcase (str)
-  (return (methcall 'js-global::to-upper-case str)))
+(defun reverse-in-place (arr)
+  (return (methcall :reverse arr)))
+
+(defun reverse (arr)
+  (return (methcall :reverse (copy-array arr))))

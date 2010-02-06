@@ -2,47 +2,52 @@
   (:nicknames #:paren-util)
   (:use :common-lisp :parenscript)
   (:export
+   ;; Misc
+   #:merge-into
+   #:lispy-apply
+   #:lexicographic-compare
+   #:identity
+
+   ;; macros
    #:in-package
    #:use-package
    #:defaultf
+   #:with-arguments-array
+
+   ;; macro pseudofunctions
    #:funcall
    #:methcall
-   #:with-arguments-array
-   #:length
-   #:subseq
-   #:to-array
-   #:concat
-   #:merge-into
-   #:lispy-apply
 
-   #:lexicographic-compare
-   #:object-to-keyargs
-   #:query-serialize
-   #:re-escape
+   ;; string/escaping functions
+   #:stringp
    #:escape-html
    #:unescape-html
+   #:re-escape
+   #:query-serialize
+
+   ;; AJAX
+   #:ajax-request  
+
+   ;; DOM
+   #:write-attributes
+   #:toplevel-window
+   #:create-elem
+   #:elem-hide
+   #:elem-show
+   #:elem-visible?
+   #:elem-insert
+   #:insertion-fn
+   #:html-content-to-dom-nodes
    #:elem-by-id
    #:remove-elem
-   #:remove-from-array
+
+   ;; UIish
    #:calculate-window-size
    #:calculate-page-size
    #:calculate-page-scroll
    #:calculate-max-page-scroll
-   #:ajax-request
-   #:stringp 
-   #:identity
-  
-   #:copy-array
-   #:insertion-fn
-   #:create-elem
-   #:html-content-to-dom-nodes
-   #:elem-insert
-   #:write-attributes
-   #:toplevel-window
-   #:elem-hide
-   #:elem-visible?
-   #:elem-show
-
+   
+   ;; mapping functions
    #:find
    #:lispy-map
    #:collect
@@ -51,12 +56,33 @@
    #:remove
    #:remove-if-not
    #:remove-duplicates
-   
+
+   ;; other array functions
+   #:push-on-end
+   #:copy-array
+   #:to-array
+   #:concat
+   #:length
+   #:subseq
+   #:remove-from-array
+   #:join
+   #:nreverse
+   #:reverse-in-place
+   #:reverse
+
+   ;; keyword arguments
+   #:object-values
+   #:object-to-keyargs   
    #:key-object-to-array
-   #:keys-array-fn-to-key-object-fn))
+   #:keys-array-fn-to-key-object-fn
+
+   ))
 
 (defpackage #:js-global
-    (:export #:console #:console.warn #:window #:window.console #:document #:arguments
+    (:export #:console #:console.warn  #:window.console #:document #:arguments
+	     #:window
+	     #:document
+	     #:arguments
 	     #:splice
 	     #:this
 	     #:-Array #:-Object))
