@@ -11,12 +11,14 @@
    #:length
    #:subseq
    #:to-array
+   #:concat
    #:merge-into
    #:lispy-apply
-   #:re-escape
 
    #:lexicographic-compare
    #:object-to-keyargs
+   #:query-serialize
+   #:re-escape
    #:escape-html
    #:unescape-html
    #:elem-by-id
