@@ -51,7 +51,9 @@
 (defun subseq (arr start &optional end)
   "Just like subseq in lisp."
   (return (methcall 'js-global::splice (copy-array arr) start (or end (length arr)))))
-  
+
+(defun concat (arr1 arr2)
+  (return (methcall 'js-global::concat arr1 arr2)))
 
 (defun lispy-apply (func &rest rest)
   "Similar to lisp's apply method.  Takes a predicate, an object that serves as the 'this'
@@ -140,9 +142,9 @@ function) from a normal defun-ed function."
 	    (let ((transformed-args (methcall 'js-global::concat
 					      (subseq args 0 num-non-keyword-args)
 					      (key-object-to-array (elt args num-non-keyword-args)))))
-	      (log "Transformed args / args")
-	      (log transformed-args)
-	      (log args)
+;	      (log "Transformed args / args")
+;	      (log transformed-args)
+;	      (log args)
 	      
 	      (return (methcall 'js-global::apply fn js-global:this transformed-args))))))
 		      
@@ -205,6 +207,31 @@ if a > b.  Ignores case and treats `9' < `80'."
 	(str-b (methcall 'js-global::to-lower-case b)))
     (let ((rv (if (< str-a str-b) -1 (if (> str-a str-b) 1 0))))
       (return rv))))
+
+(defun arrayp (obj)
+  (return (=== js-global::-array (slot-value obj 'js-global::constructor))))
+
+(defun query-serialize (arr-or-hash)
+  "Serializes an object's keys and values into something that may be placed into a URI."
+  (let ((arr arr-or-hash))
+    (unless (arrayp arr-or-hash)
+      (setf arr (array))
+      (for-in
+       (key arr-or-hash)
+       (let ((value (aref arr-or-hash key)))
+	 (methcall 'js-global::push arr key)
+	 (methcall 'js-global::push arr value))))
+    (let ((str ""))
+      (dotimes (i (- (length arr) 1))
+	(let* ((key (aref arr i))
+	       (value (aref arr (1+ i))))
+	  (setf str (+ str
+		       (js-global::encode-u-r-i-component key)
+		       "="
+		       (js-global::encode-u-r-i-component value)))
+	  (unless (eql (- (length arr) 2) i)
+	    (setf str (+ str "&")))))
+      (return str))))
 
 (defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive headers body (method :get))
   (let* ((ready-state nil)
@@ -330,7 +357,7 @@ if a > b.  Ignores case and treats `9' < `80'."
     (cond
       ((and (slot-value js-global:window 'js-global::inner-height)
 	    (slot-value js-global:window 'js-global::scroll-max-y))
-       (log "first")
+;       (log "first")
        (return (array (slot-value js-global:window 'js-global::scroll-max-x)
 		      (+ (if framep
 			     (slot-value js-global::parent 'js-global::inner-height)
@@ -340,11 +367,11 @@ if a > b.  Ignores case and treats `9' < `80'."
 			     (slot-value js-global::self 'js-global::scroll-max-y))))))
       ((> (slot-value doc 'js-global::body 'js-global::scroll-height)
 	  (slot-value doc 'js-global::body 'js-global::offset-height))
-       (log "second")
+;       (log "second")
        (return (array (slot-value doc 'js-global::body 'js-global::scroll-width)
 		      (slot-value doc 'js-global::body 'js-global::scroll-height))))
       (t
-       (log "third")
+;       (log "third")
        (let* ((html-elem (methcall 'js-global::item
 				   (methcall 'js-global::get-elements-by-tag-name doc "html")
 				   0))
@@ -458,11 +485,12 @@ according to the attribute names."
   (let  ((node (create-elem "DIV")))
     (setf (slot-value node 'js-global::inner-h-t-m-l)
 	  str)
+;    (log node)
     (cond
+      ((slot-value node 'js-global::text-content)
+       (return (slot-value node 'js-global::text-content)))
       ((slot-value node 'js-global::inner-text)
        (return (slot-value node 'js-global::inner-text)))
-      ((slot-value node 'js-global::inner-content)
-       (return (slot-value node 'js-global::inner-content)))
       (t (return str)))))
 
 (defun html-content-to-dom-nodes (html-content tag-name)

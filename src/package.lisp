@@ -23,6 +23,7 @@
    #:escape-html
    #:unescape-html
    #:re-escape
+   #:query-serialize
 
    ;; AJAX
    #:ajax-request  
@@ -60,6 +61,7 @@
    #:push-on-end
    #:copy-array
    #:to-array
+   #:concat
    #:length
    #:subseq
    #:remove-from-array
