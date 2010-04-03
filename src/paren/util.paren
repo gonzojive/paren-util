@@ -281,25 +281,34 @@ if a > b.  Ignores case and treats `9' < `80'."
 ;; page size calculation
 (defun calculate-framep ()
   "Returns true if the javascript context is inside a frame."
-  (return
+  (try 
+   (return
     (and (slot-value js-global:window 'js-global::parent 'js-global::frames
-		     (slot-value js-global:window 'js-global::name))
-	 (<= (length (methcall 'js-global::get-elements-by-tag-name
-			       (slot-value js-global::parent 'js-global:document)
-			       "frameset"))
-	     0))))
+                     (slot-value js-global:window 'js-global::name))
+         (<= (length (methcall 'js-global::get-elements-by-tag-name
+                               (slot-value js-global::parent 'js-global:document)
+                               "frameset"))
+             0)))
+   (:catch (e) (return t))))
 
-(defun toplevel-window ()
+(defun toplevel-window (&optional (this-window js-global::self) (require-permission t))
   "Returns the toplevel window regardless of framesets and so on."
   (let* ((framep (calculate-framep))
-	 (win (if framep js-global::parent js-global::self)))
-    (return win)))
+	 (topwin (if framep js-global::parent this-window)))
+    
+    (try
+     (progn
+       ;; ensure we have permissions -- this will throw an error if we don't
+       (when (slot-value topwin 'js-global:document 'js-global::location js-global::href)
+         (return topwin))
+       (return topwin))
+     (:catch (e) (return (if require-permission this-window topwin))))))
 
-(defun calculate-page-scroll ()
+(defun calculate-page-scroll (&key toplevel)
   "Returns an array of length 2 with the x and y scroll."
   (let* ((framep (calculate-framep))
-	 (doc (if framep (slot-value js-global::parent 'js-global:document) js-global:document))
-	 (win (if framep js-global::parent js-global::self))
+	 (doc (if (and toplevel framep) (slot-value js-global::parent 'js-global:document) js-global:document))
+	 (win (if (and toplevel framep) js-global::parent js-global::self))
 	 (doc-elem (slot-value doc 'js-global::document-element)))
     (return (array
 	     (or (slot-value win 'js-global::page-x-offset)
@@ -312,11 +321,11 @@ if a > b.  Ignores case and treats `9' < `80'."
 		 0)))))
     
 
-(defun calculate-max-page-scroll ()
+(defun calculate-max-page-scroll (&key toplevel)
   "Returns an array of length 2 with the x and y scroll."
   (let* ((framep (calculate-framep))
-	 (doc (if framep (slot-value js-global::parent 'js-global:document) js-global:document))
-	 (win (if framep js-global::parent js-global::self))
+	 (doc (if (and toplevel framep) (slot-value js-global::parent 'js-global:document) js-global:document))
+	 (win (if (and toplevel framep) js-global::parent js-global::self))
 	 (doc-elem (slot-value doc 'js-global::document-element)))
     (cond
       ((and (slot-value js-global:window 'js-global::inner-height)

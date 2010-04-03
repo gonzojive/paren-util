@@ -77,6 +77,7 @@
    ))
 
 (defpackage #:js-global
+;    (:nicknames #:js)
     (:export #:console #:console.warn  #:window.console #:document #:arguments
 	     #:window
 	     #:document
