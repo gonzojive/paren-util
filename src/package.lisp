@@ -36,6 +36,7 @@
    #:elem-show
    #:elem-visible?
    #:elem-insert
+   #:elem-wrap
    #:insertion-fn
    #:html-content-to-dom-nodes
    #:elem-by-id
@@ -79,7 +80,7 @@
    ))
 
 (defpackage #:js-global
-;    (:nicknames #:js)
+    (:nicknames #:jsg #:jsns)
     (:export #:console #:console.warn  #:window.console #:document #:arguments
 	     #:window
 	     #:document

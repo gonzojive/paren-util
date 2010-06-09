@@ -211,8 +211,24 @@ if a > b.  Ignores case and treats `9' < `80'."
 (defun arrayp (obj)
   (return (=== js-global::-array (slot-value obj 'js-global::constructor))))
 
+(defun query-serialize-value (value)
+  "Given VALUE, turns it into a form-submittable value.
+QUERY-SERIALIZE-VALUE is called recursively on an array.
+URLEncodeComponent is called on strings"
+  (cond
+    ((stringp value) (return (jsns::encode-u-r-i-component value)))
+    ((arrayp value) (return (methcall 'jsns::join
+                                      (lispy-map #'query-serialize-value value)
+                                      ",")))
+    (t (return value))))
+
 (defun query-serialize (arr-or-hash)
-  "Serializes an object's keys and values into something that may be placed into a URI."
+  "Serializes an object's keys and values into something that may be placed into a URI.
+
+Accepts either an array or a hash table.  If an array is specified,
+keys and values are staggered, and they are url-encoded in order.
+Otherwise for-in is used to transform the object into staggered array
+and then the former method is used to encode to a string."
   (let ((arr arr-or-hash))
     (unless (arrayp arr-or-hash)
       (setf arr (array))
@@ -221,19 +237,32 @@ if a > b.  Ignores case and treats `9' < `80'."
        (let ((value (aref arr-or-hash key)))
 	 (methcall 'js-global::push arr key)
 	 (methcall 'js-global::push arr value))))
-    (let ((str ""))
-      (dotimes (i (- (length arr) 1))
+    (let ((str "")
+          (i 0))
+      (while (< i (length arr))
 	(let* ((key (aref arr i))
 	       (value (aref arr (1+ i))))
 	  (setf str (+ str
 		       (js-global::encode-u-r-i-component key)
 		       "="
-		       (js-global::encode-u-r-i-component value)))
+                       (query-serialize-value value)))
 	  (unless (eql (- (length arr) 2) i)
-	    (setf str (+ str "&")))))
+	    (setf str (+ str "&")))
+          (incf i 2)))
       (return str))))
 
-(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive headers body (method :get))
+(defun add-parameters-to-url (url parameters)
+  (let ((params-encoded (query-serialize parameters))
+        (?-index (methcall 'jsns::index-of url "?")))
+    (return
+      (if (=== -1 ?-index)
+          (+ url "?" params-encoded)
+          (if (=== (- (length url) 1) ?-index)
+              (+ url params-encoded)
+              (+ url "&" params-encoded))))))
+
+(defun ajax-request (url &key on-success on-failure on-loading on-loaded on-interactive
+                     headers body (method :get) parameters )
   (let* ((ready-state nil)
 	 (transport (or (and (slot-value js-global:window :-x-m-l-http-request)
 			     (new (js-global::-x-m-l-http-request)))
@@ -246,6 +275,12 @@ if a > b.  Ignores case and treats `9' < `80'."
 		      (when (=== 4 ready-state)
 			(funcall on-success (slot-value transport :response-text) transport)))))
     (setf (slot-value transport 'js-global::onreadystatechange) on-rsc-fn)
+    (when (and parameters (eql "GET" method))
+      (setf url (add-parameters-to-url url parameters)))
+    (when (and parameters
+               (not body)
+               (eql "POST" method))
+      (setf body (query-serialize parameters)))
     (methcall 'js-global::open transport method url t)
     (when headers
       (for-in (header-name headers)
@@ -304,6 +339,14 @@ if a > b.  Ignores case and treats `9' < `80'."
 (defun elem-show (elem)
   "Unhides the element."
   (setf (slot-value elem 'js-global::style 'js-global::display) ""))
+
+(defun elem-wrap (elem wrapper)
+  "Wraps the element in the given wrapper element."
+  (let ((parent (slot-value elem 'jsns::parent-node)))
+    ;; replace elem with wrapper
+    (methcall 'jsns::replace-child parent wrapper elem)
+    ;; append elem to wrapper
+    (methcall 'jsns::append-child wrapper elem)))
 
 ;; page size calculation
 (defun calculate-framep ()
