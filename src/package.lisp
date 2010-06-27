@@ -24,6 +24,7 @@
    #:unescape-html
    #:re-escape
    #:query-serialize
+   #:query-decode
 
    ;; AJAX
    #:ajax-request  
@@ -32,6 +33,7 @@
    #:write-attributes
    #:toplevel-window
    #:create-elem
+   #:elem-add-class
    #:elem-hide
    #:elem-show
    #:elem-visible?

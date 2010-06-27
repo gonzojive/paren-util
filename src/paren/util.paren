@@ -222,6 +222,32 @@ URLEncodeComponent is called on strings"
                                       ",")))
     (t (return value))))
 
+(defun query-decode (str &key arrayp)
+  "Given a query string (with or without the leading ?), parses the
+encoded values and returns a dictionary."
+  (when (=== "?" (elt str 0))
+    (setf str (methcall 'jsns::substring str 1)))
+  (let* ((parts (methcall 'jsns::split str "&"))
+         (keyvals (lispy-map (lambda (x)
+                               (let*  ((split (methcall 'jsns::split x "="))
+                                       (key (jsns::decode-u-r-i-component (if split
+                                                                              (elt split 0)
+                                                                              x)))
+                                       (value (if (elt split 1)
+                                                  (jsns::decode-u-r-i-component (elt split 1))
+                                                  nil)))
+                                 (return (array key value))))
+                             parts)))
+    (when arrayp
+      (return keyvals))
+    (let ((o (create)))
+      (dotimes (i (length keyvals))
+        (let ((key (slot-value keyvals i 0))
+              (val (slot-value keyvals i 1)))
+          (setf (slot-value o key) val)))
+      (return o))))
+                                 
+                                               
 (defun query-serialize (arr-or-hash)
   "Serializes an object's keys and values into something that may be placed into a URI.
 
@@ -326,6 +352,14 @@ and then the former method is used to encode to a string."
     (return result)))
 
 ;;; UI-oriented
+
+(defun elem-add-class (elem clz)
+  (symbol-macrolet ((class-name (slot-value elem 'jsns::class-name)))
+    (let ((old-str (or class-name "")))
+      (setf class-name
+            (if (=== "" old-str)
+                clz
+                (+ old-str " " clz))))))
 
 ;; show/hide elements
 (defun elem-visible? (elem)
