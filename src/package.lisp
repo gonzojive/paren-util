@@ -34,6 +34,7 @@
    #:toplevel-window
    #:create-elem
    #:elem-add-class
+   #:elem-remove-class
    #:elem-hide
    #:elem-show
    #:elem-visible?

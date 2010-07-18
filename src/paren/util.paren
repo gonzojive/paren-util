@@ -361,6 +361,11 @@ and then the former method is used to encode to a string."
                 clz
                 (+ old-str " " clz))))))
 
+(defun elem-remove-class (elem clz)
+  (symbol-macrolet ((class-name (slot-value elem 'jsns::class-name)))
+    (let ((classes (methcall 'jsns::split (or class-name "") " ")))
+      (setf class-name (methcall 'jsns::join (remove clz classes) " ")))))
+
 ;; show/hide elements
 (defun elem-visible? (elem)
   "Returns t if the element is not hidden"
