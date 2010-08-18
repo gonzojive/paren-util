@@ -2,7 +2,7 @@
 
 (defpsmacro in-package (package-designator)
     `(eval-when (:compile-toplevel)
-       (setf cl:*package* (find-package ,package-designator))))
+       (setf cl:*package* (cl:find-package ,package-designator))))
 
 (defpsmacro use-package (package-designator &optional into-package)
     (let ((all-args (cons package-designator (if into-package (cons into-package nil) nil))))

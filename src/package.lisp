@@ -61,6 +61,10 @@
    #:remove-if-not
    #:remove-duplicates
 
+   ;; set operations
+   #:rough-set-union
+   #:rough-set-difference
+
    ;; other array functions
    #:push-on-end
    #:copy-array
