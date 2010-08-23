@@ -9,8 +9,8 @@
       `(eval-when (:compile-toplevel)
 	 (use-package ,@all-args))))
 
-(defpsmacro funcall (fun &rest args)
-    `(,fun ,@args))
+;(defpsmacro funcall (fun &rest args)
+;    `(,fun ,@args))
 
 (defpsmacro methcall (method this-obj &rest args)
     `((slot-value ,this-obj ,method) ,@args))
